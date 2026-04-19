@@ -1,4 +1,3 @@
-// ── Create context menu on install ──────────────────────
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'saveAsWebP',
@@ -7,45 +6,33 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// ── Handle right-click → Save as WebP ───────────────────
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== 'saveAsWebP') return;
+  if (!info.srcUrl) return;
 
-  const imageUrl = info.srcUrl;
-  if (!imageUrl) return;
+  // Load settings then send to content script
+  chrome.storage.local.get(['maxSizeKB', 'quality'], (stored) => {
+    const payload = {
+      action:    'convertAndDownload',
+      imageUrl:  info.srcUrl,
+      maxSizeKB: stored.maxSizeKB || 150,
+      quality:   stored.quality   || 75
+    };
 
-  // Send message to a temporary offscreen-like approach via content script
-  // We'll inject a content script to do the conversion in page context
-  chrome.tabs.sendMessage(tab.id, {
-    action: 'convertAndDownload',
-    imageUrl: imageUrl
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      // Content script not ready, inject it first
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js']
-      }, () => {
-        // Retry after injection
-        setTimeout(() => {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'convertAndDownload',
-            imageUrl: imageUrl
-          });
-        }, 300);
-      });
-    }
+    chrome.tabs.sendMessage(tab.id, payload, (res) => {
+      if (chrome.runtime.lastError) {
+        chrome.scripting.executeScript(
+          { target: { tabId: tab.id }, files: ['content.js'] },
+          () => setTimeout(() => chrome.tabs.sendMessage(tab.id, payload), 300)
+        );
+      }
+    });
   });
 });
 
-// ── Listen for download requests from content script ────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'downloadWebP') {
-    chrome.downloads.download({
-      url: msg.dataUrl,
-      filename: msg.filename,
-      saveAs: false
-    });
+    chrome.downloads.download({ url: msg.dataUrl, filename: msg.filename, saveAs: false });
     sendResponse({ ok: true });
   }
   return true;
