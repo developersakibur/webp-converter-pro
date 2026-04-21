@@ -70,26 +70,47 @@ function blobToDataUrl(blob) {
 }
 
 function buildFilename(url) {
+  let base = '';
   try {
-    const path = new URL(url).pathname;
-    const last = path.split('/').filter(Boolean).pop() || '';
-    const dot  = last.lastIndexOf('.');
-    const base = dot !== -1 ? last.slice(0, dot) : last;
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+    
+    // 1. Try search params
+    const searchParams = urlObj.searchParams;
+    for (const [key, value] of searchParams) {
+      if (/\.(jpg|jpeg|png|gif|webp|avif)$/i.test(value)) {
+        base = value.split('/').pop().split('.').shift();
+        break;
+      }
+    }
 
-    // If base is meaningful (not empty, not just numbers/random hash-like short string)
-    if (base && base.length > 2 && !/^\d+$/.test(base)) {
-      return base + '_compressed.webp';
+    // 2. Try path if search params failed
+    if (!base) {
+      const last = path.split('/').filter(Boolean).pop() || '';
+      const dot  = last.lastIndexOf('.');
+      base = dot !== -1 ? last.slice(0, dot) : last;
+    }
+
+    // Cleanup: remove common useless names and encoded chars
+    if (base.toLowerCase() === 'download' || base.length < 2 || base.includes('%')) {
+      base = '';
     }
   } catch {}
 
-  // Fallback: date-time format DD-MM-YYYY_HH-MM-SS.webp
   const now = new Date();
   const dd  = String(now.getDate()).padStart(2,'0');
   const mm  = String(now.getMonth()+1).padStart(2,'0');
-  const yyyy = now.getFullYear();
+  const yy  = String(now.getFullYear()).slice(-2);
   const hh  = String(now.getHours()).padStart(2,'0');
   const min = String(now.getMinutes()).padStart(2,'0');
   const ss  = String(now.getSeconds()).padStart(2,'0');
+  const ts  = `${dd}-${mm}-${yy}_${hh}-${min}-${ss}`;
 
-  return `${dd}-${mm}-${yyyy}_${hh}-${min}-${ss}.webp`;
+  if (base) {
+    // Trim to 20 chars
+    const cleanBase = base.substring(0, 20).replace(/[^a-z0-9_-]/gi, '_');
+    return `${cleanBase}_${ts}.webp`;
+  }
+
+  return `img_${ts}.webp`;
 }

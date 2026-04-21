@@ -15,8 +15,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     const payload = {
       action:    'convertAndDownload',
       imageUrl:  info.srcUrl,
-      maxSizeKB: stored.maxSizeKB || 150,
-      quality:   stored.quality   || 75
+      maxSizeKB: stored.maxSizeKB || 50,
+      quality:   stored.quality   || 25
     };
 
     chrome.tabs.sendMessage(tab.id, payload, (res) => {

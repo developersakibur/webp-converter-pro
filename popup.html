@@ -2,201 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>WebP Compressor Pro</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{
-      width:380px;min-height:490px;
-      font-family:'Segoe UI',sans-serif;
-      background:#0f0f13;color:#e8e8f0;
-    }
-
-    .header{
-      background:linear-gradient(135deg,#1a1a2e,#16213e);
-      padding:16px 20px 14px;border-bottom:1px solid #2a2a3e;
-      display:flex;align-items:center;gap:10px;
-    }
-    .hicon{
-      width:34px;height:34px;
-      background:linear-gradient(135deg,#6c63ff,#3ecfcf);
-      border-radius:9px;display:flex;align-items:center;justify-content:center;
-      font-size:17px;flex-shrink:0;
-    }
-    .header h1{font-size:15px;font-weight:700;color:#fff;}
-    .header p{font-size:10px;color:#8888aa;margin-top:2px;}
-
-    .drop{
-      margin:14px 16px 10px;
-      border:2px dashed #2e2e4a;border-radius:12px;
-      padding:22px 16px;text-align:center;cursor:pointer;
-      transition:all .2s;background:#13131e;position:relative;
-    }
-    .drop:hover,.drop.over{border-color:#6c63ff;background:#16162a;}
-    .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-    .drop-icon{font-size:28px;margin-bottom:6px;}
-    .drop-title{font-size:13px;font-weight:600;color:#c8c8e8;}
-    .drop-sub{font-size:10px;color:#555577;margin-top:3px;}
-    .drop-sub b{color:#6c63ff;}
-
-    /* Settings card */
-    .settings{
-      margin:0 16px 10px;
-      background:#13131e;border:1px solid #1e1e32;border-radius:10px;
-      overflow:hidden;
-    }
-
-    /* Row 1: quality + max size side by side */
-    .row-dual{
-      display:flex;align-items:stretch;
-      border-bottom:1px solid #1a1a2a;
-    }
-    .dual-cell{
-      flex:1;padding:10px 12px;
-    }
-    .dual-cell+.dual-cell{border-left:1px solid #1a1a2a;}
-    .cell-label{
-      display:flex;justify-content:space-between;align-items:center;
-      margin-bottom:7px;
-    }
-    .cell-label span{font-size:10px;color:#8888aa;}
-    .cell-label strong{font-size:12px;color:#e0e0ff;}
-
-    input[type="range"]{
-      width:100%;height:3px;-webkit-appearance:none;
-      background:#2a2a3e;border-radius:3px;outline:none;
-    }
-    input[type="range"]::-webkit-slider-thumb{
-      -webkit-appearance:none;width:13px;height:13px;
-      border-radius:50%;background:linear-gradient(135deg,#6c63ff,#3ecfcf);
-      cursor:pointer;box-shadow:0 0 5px rgba(108,99,255,.5);
-    }
-
-    .size-wrap{display:flex;align-items:center;gap:5px;}
-    .size-wrap input[type="number"]{
-      flex:1;background:#0f0f18;border:1px solid #2a2a3e;
-      border-radius:6px;padding:4px 7px;color:#e0e0ff;
-      font-size:12px;outline:none;
-    }
-    .size-wrap input[type="number"]:focus{border-color:#6c63ff;}
-    .size-wrap span{font-size:10px;color:#555577;}
-
-    /* Row 2: zip toggle */
-    .row-zip{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:9px 12px;
-    }
-    .zip-label{font-size:10px;color:#8888aa;}
-    .toggle{
-      width:34px;height:18px;background:#2a2a3e;border-radius:9px;
-      position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;
-    }
-    .toggle.on{background:linear-gradient(135deg,#6c63ff,#3ecfcf);}
-    .toggle::after{
-      content:'';position:absolute;width:12px;height:12px;
-      background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;
-    }
-    .toggle.on::after{left:19px;}
-
-    /* File list */
-    .file-list{
-      margin:0 16px 10px;max-height:170px;
-      overflow-y:auto;display:flex;flex-direction:column;gap:5px;
-    }
-    .file-list::-webkit-scrollbar{width:3px;}
-    .file-list::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:3px;}
-    .fi{
-      background:#13131e;border:1px solid #1e1e32;
-      border-radius:8px;padding:7px 9px;
-      display:flex;align-items:center;gap:8px;
-    }
-    .fi-thumb{width:30px;height:30px;object-fit:cover;border-radius:4px;background:#1e1e2e;flex-shrink:0;}
-    .fi-info{flex:1;min-width:0;}
-    .fi-name{font-size:10px;color:#c8c8e8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .fi-stat{font-size:9px;color:#555577;margin-top:2px;}
-    .fi-prog{height:2px;background:#1e1e32;border-radius:2px;margin-top:4px;overflow:hidden;}
-    .fi-fill{height:100%;width:0%;background:linear-gradient(90deg,#6c63ff,#3ecfcf);border-radius:2px;transition:width .3s;}
-    .fi-rm{background:none;border:none;color:#333355;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:color .15s;}
-    .fi-rm:hover{color:#ff6b6b;}
-    .empty{text-align:center;padding:14px;font-size:10px;color:#333355;}
-
-    /* Summary */
-    .summary{
-      margin:0 16px 10px;
-      background:#0d1f1f;border:1px solid #1a3333;
-      border-radius:8px;padding:8px 12px;
-      display:none;gap:0;
-    }
-    .summary.show{display:flex;}
-    .si{flex:1;display:flex;flex-direction:column;align-items:center;}
-    .si-v{font-size:13px;font-weight:700;color:#3ecfcf;}
-    .si-k{font-size:9px;color:#555577;margin-top:1px;}
-
-    /* Buttons */
-    .btn-row{margin:0 16px 12px;display:flex;gap:8px;}
-    .btn{
-      flex:1;padding:10px;border:none;border-radius:8px;
-      font-size:12px;font-weight:600;cursor:pointer;
-      transition:opacity .2s,transform .1s;
-    }
-    .btn:active{transform:scale(.97);}
-    .btn:disabled{opacity:.35;cursor:not-allowed;}
-    .btn-primary{background:linear-gradient(135deg,#6c63ff,#3ecfcf);color:#fff;}
-    .btn-secondary{background:#1e1e32;color:#9999bb;border:1px solid #2a2a3e;}
-
-    /* Tip */
-    .tip{
-      margin:0 16px 14px;
-      background:#13131e;border:1px solid #1e1e32;
-      border-radius:8px;padding:9px 12px;
-      display:flex;align-items:flex-start;gap:8px;
-    }
-    .tip-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
-    .tip-text{font-size:10px;color:#7777aa;line-height:1.55;}
-    .tip-text b{color:#9999cc;}
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebP Pro</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="hicon">🖼</div>
-  <div>
-    <h1>WebP Compressor Pro</h1>
-    <p>Compress → Convert → Download</p>
+  <h1>WebP Pro</h1>
+  <div class="toggle-container">
+    <label class="toggle-switch">
+      <input type="checkbox" id="zipToggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="input-grid">
+  <div class="input-group">
+    <div class="range-wrap">
+      <input type="range" id="qualitySlider" min="1" max="100" value="25"/>
+      <span id="qVal">25%</span>
+    </div>
+  </div>
+  <div class="input-group" style="flex: 0 0 100px;">
+    <input type="number" id="maxSize" value="50" min="10" max="9999"/>
   </div>
 </div>
 
 <div class="drop" id="drop">
   <input type="file" id="fileIn" accept="image/*" multiple/>
-  <div class="drop-icon">📂</div>
-  <div class="drop-title">Click or Drop Images Here</div>
-  <div class="drop-sub">JPG, PNG, GIF, WEBP — <b>multiple files supported</b></div>
-</div>
-
-<div class="settings">
-  <!-- Quality + Max Size side by side -->
-  <div class="row-dual">
-    <div class="dual-cell">
-      <div class="cell-label">
-        <span>Max Quality</span>
-        <strong id="qVal">75%</strong>
-      </div>
-      <input type="range" id="qualitySlider" min="1" max="100" value="75"/>
-    </div>
-    <div class="dual-cell">
-      <div class="cell-label">
-        <span>Max Size</span>
-      </div>
-      <div class="size-wrap">
-        <input type="number" id="maxSize" value="150" min="10" max="9999"/>
-        <span>KB</span>
-      </div>
-    </div>
-  </div>
-  <!-- ZIP toggle -->
-  <div class="row-zip">
-    <span class="zip-label">Download as ZIP (batch)</span>
-    <div class="toggle on" id="zipToggle"></div>
-  </div>
+  <div class="drop-title">Drop Images Here</div>
+  <div class="drop-sub">JPG, PNG, GIF, WEBP supported</div>
 </div>
 
 <div class="file-list" id="fileList">
@@ -211,16 +48,7 @@
 </div>
 
 <div class="btn-row">
-  <button class="btn btn-secondary" id="clearBtn">🗑 Clear</button>
-  <button class="btn btn-primary"   id="convertBtn" disabled>⚡ Convert & Download</button>
-</div>
-
-<div class="tip">
-  <div class="tip-icon">💡</div>
-  <div class="tip-text">
-    <b>Right-click any image</b> on any webpage → <b>"Save as WebP"</b><br/>
-    Quality &amp; Max Size settings apply automatically.
-  </div>
+  <button class="btn btn-primary"   id="convertBtn" disabled>Convert & Download</button>
 </div>
 
 <script src="jszip.min.js"></script>

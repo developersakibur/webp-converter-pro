@@ -11,19 +11,28 @@ const qVal          = document.getElementById('qVal');
 const maxSizeInp    = document.getElementById('maxSize');
 const zipToggle     = document.getElementById('zipToggle');
 const convertBtn    = document.getElementById('convertBtn');
-const clearBtn      = document.getElementById('clearBtn');
 const summary       = document.getElementById('summary');
 
 // ── Load saved settings ───────────────────────────────────
-chrome.storage.local.get(['maxSizeKB','quality'], r => {
-  if (r.maxSizeKB) maxSizeInp.value    = r.maxSizeKB;
-  if (r.quality)   { qualitySlider.value = r.quality; qVal.textContent = r.quality + '%'; }
+chrome.storage.local.get(['maxSizeKB', 'quality', 'zipEnabled'], r => {
+  if (r.maxSizeKB) maxSizeInp.value = r.maxSizeKB;
+  if (r.quality) {
+    qualitySlider.value = r.quality;
+    qVal.textContent = r.quality + '%';
+  }
+  if (r.zipEnabled !== undefined) {
+    zipEnabled = r.zipEnabled;
+    zipToggle.checked = zipEnabled;
+  } else {
+    zipToggle.checked = zipEnabled;
+  }
 });
 
 function saveSettings() {
   chrome.storage.local.set({
-    maxSizeKB: parseInt(maxSizeInp.value)    || 150,
-    quality:   parseInt(qualitySlider.value) || 75
+    maxSizeKB: parseInt(maxSizeInp.value) || 50,
+    quality: parseInt(qualitySlider.value) || 25,
+    zipEnabled: zipToggle.checked
   });
 }
 
@@ -35,13 +44,13 @@ qualitySlider.addEventListener('input', () => {
 maxSizeInp.addEventListener('change', saveSettings);
 
 // ── ZIP toggle ────────────────────────────────────────────
-zipToggle.addEventListener('click', () => {
-  zipEnabled = !zipEnabled;
-  zipToggle.classList.toggle('on', zipEnabled);
+zipToggle.addEventListener('change', () => {
+  zipEnabled = zipToggle.checked;
+  saveSettings();
 });
 
 // ── File input / drop ─────────────────────────────────────
-fileIn.addEventListener('change', e => { addFiles(e.target.files); fileIn.value=''; });
+fileIn.addEventListener('change', e => { addFiles(e.target.files); fileIn.value = ''; });
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', e => {
@@ -53,8 +62,8 @@ function addFiles(raw) {
   Array.from(raw)
     .filter(f => f.type.startsWith('image/'))
     .forEach(f => {
-      if (!files.find(x => x.file.name===f.name && x.file.size===f.size))
-        files.push({ file:f, status:'pending', blob:null, finalSize:0 });
+      if (!files.find(x => x.file.name === f.name && x.file.size === f.size))
+        files.push({ file: f, status: 'pending', blob: null, finalSize: 0 });
     });
   render(); updateBtn();
 }
@@ -68,7 +77,7 @@ function render() {
   fileList.innerHTML = '';
   files.forEach((f, i) => {
     const el = document.createElement('div');
-    el.className='fi'; el.id=`fi${i}`;
+    el.className = 'fi'; el.id = `fi${i}`;
     el.innerHTML = `
       <img class="fi-thumb" id="th${i}" src="" alt=""/>
       <div class="fi-info">
@@ -79,7 +88,7 @@ function render() {
       <button class="fi-rm" data-i="${i}">×</button>`;
     fileList.appendChild(el);
     const r = new FileReader();
-    r.onload = e => { const t=document.getElementById(`th${i}`); if(t) t.src=e.target.result; };
+    r.onload = e => { const t = document.getElementById(`th${i}`); if (t) t.src = e.target.result; };
     r.readAsDataURL(f.file);
   });
   fileList.querySelectorAll('.fi-rm').forEach(b => b.addEventListener('click', e => {
@@ -89,66 +98,63 @@ function render() {
 }
 
 function updateItem(i) {
-  const f=files[i];
-  const st=document.getElementById(`st${i}`);
-  const pr=document.getElementById(`pr${i}`);
+  const f = files[i];
+  const st = document.getElementById(`st${i}`);
+  const pr = document.getElementById(`pr${i}`);
   if (!st) return;
-  if (f.status==='working') {
-    st.style.color='#ffcc44'; st.textContent='⏳ Processing...'; pr.style.width='50%';
-  } else if (f.status==='done') {
-    const pct = Math.round((1 - f.finalSize/f.file.size)*100);
-    st.style.color='#3ecfcf';
-    st.textContent = `✓ ${fmt(f.finalSize)}  (${pct > 0 ? pct+'% saved' : 'no reduction'})`;
-    pr.style.width='100%';
-  } else if (f.status==='error') {
-    st.style.color='#ff6b6b'; st.textContent='✗ Failed';
-    pr.style.width='100%'; pr.style.background='#ff6b6b';
+  if (f.status === 'working') {
+    st.style.color = '#00ffff'; st.textContent = '⏳ Processing...'; pr.style.width = '50%';
+  } else if (f.status === 'done') {
+    const pct = Math.round((1 - f.finalSize / f.file.size) * 100);
+    st.style.color = '#00ffff';
+    st.textContent = `✓ ${fmt(f.finalSize)}  (${pct > 0 ? pct + '% saved' : 'no reduction'})`;
+    pr.style.width = '100%';
+  } else if (f.status === 'error') {
+    st.style.color = '#f87171'; st.textContent = '✗ Failed';
+    pr.style.width = '100%'; pr.style.background = '#f87171';
   }
 }
 
 function updateSummary() {
-  const done = files.filter(f => f.status==='done');
+  const done = files.filter(f => f.status === 'done');
   if (!done.length) { summary.classList.remove('show'); return; }
-  const orig  = done.reduce((s,f)=>s+f.file.size, 0);
-  const final = done.reduce((s,f)=>s+f.finalSize,  0);
+  const orig = done.reduce((s, f) => s + f.file.size, 0);
+  const final = done.reduce((s, f) => s + f.finalSize, 0);
   document.getElementById('sCount').textContent = done.length;
-  document.getElementById('sOrig').textContent  = fmt(orig);
+  document.getElementById('sOrig').textContent = fmt(orig);
   document.getElementById('sFinal').textContent = fmt(final);
-  document.getElementById('sSaved').textContent = Math.round((1-final/orig)*100)+'%';
+  document.getElementById('sSaved').textContent = Math.round((1 - final / orig) * 100) + '%';
   summary.classList.add('show');
 }
 
 function updateBtn() { convertBtn.disabled = !files.length; }
 
-// ── Clear ─────────────────────────────────────────────────
-clearBtn.addEventListener('click', () => { files=[]; render(); updateBtn(); });
-
 // ── Convert & Download ────────────────────────────────────
 convertBtn.addEventListener('click', async () => {
-  convertBtn.disabled   = true;
+  convertBtn.disabled = true;
   convertBtn.textContent = '⏳ Processing...';
   saveSettings();
 
-  const maxBytes  = (parseInt(maxSizeInp.value)    || 150) * 1024;
-  const maxQuality = (parseInt(qualitySlider.value) || 75)  / 100;
+  const maxBytes = (parseInt(maxSizeInp.value) || 150) * 1024;
+  const maxQuality = (parseInt(qualitySlider.value) || 75) / 100;
 
-  for (let i=0; i<files.length; i++) {
+  for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    if (f.status==='done') continue;
-    f.status='working'; updateItem(i);
+    if (f.status === 'done') continue;
+    f.status = 'working'; updateItem(i);
     try {
-      f.blob      = await compressToWebP(f.file, maxBytes, maxQuality);
+      f.blob = await compressToWebP(f.file, maxBytes, maxQuality);
       f.finalSize = f.blob.size;
-      f.status    = 'done';
-    } catch { f.status='error'; }
+      f.status = 'done';
+    } catch { f.status = 'error'; }
     updateItem(i);
   }
 
   updateSummary();
-  convertBtn.textContent = '⚡ Convert & Download';
-  convertBtn.disabled    = false;
+  convertBtn.textContent = 'Convert & Download';
+  convertBtn.disabled = false;
 
-  const done = files.filter(f => f.status==='done');
+  const done = files.filter(f => f.status === 'done');
   if (!done.length) return;
 
   if (zipEnabled && done.length > 1) {
@@ -166,7 +172,7 @@ function compressToWebP(file, targetBytes, maxQuality) {
     img.onload = () => {
       URL.revokeObjectURL(url);
       const canvas = document.createElement('canvas');
-      canvas.width  = img.naturalWidth;
+      canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       canvas.getContext('2d').drawImage(img, 0, 0);
       binarySearch(canvas, targetBytes, maxQuality, resolve, reject);
@@ -177,12 +183,10 @@ function compressToWebP(file, targetBytes, maxQuality) {
 }
 
 function binarySearch(canvas, targetBytes, maxQuality, resolve, reject) {
-  // First try at maxQuality — maybe it already fits
   canvas.toBlob(firstBlob => {
     if (!firstBlob) { reject(new Error('blob')); return; }
     if (firstBlob.size <= targetBytes) { resolve(firstBlob); return; }
 
-    // Need to go lower — binary search from 0.01 to maxQuality
     let lo = 0.01, hi = maxQuality, best = firstBlob, iter = 0;
 
     function step(q) {
@@ -191,10 +195,10 @@ function binarySearch(canvas, targetBytes, maxQuality, resolve, reject) {
         iter++;
 
         if (blob.size <= targetBytes) {
-          best = blob; // fits — try higher quality
-          lo   = q;
+          best = blob;
+          lo = q;
         } else {
-          hi = q; // too big — go lower
+          hi = q;
         }
 
         if (iter >= 20 || hi - lo < 0.01) { resolve(best); return; }
@@ -211,9 +215,19 @@ async function downloadZip(done) {
   const zip = new JSZip();
   done.forEach(f => zip.file(outName(f.file.name), f.blob));
   const zipBlob = await zip.generateAsync({
-    type:'blob', compression:'DEFLATE', compressionOptions:{level:6}
+    type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 }
   });
-  dlBlob(zipBlob, 'webp_compressed_images.zip');
+
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const zipName = `webp_${dd}-${mm}-${yy}_${hh}-${min}-${ss}.zip`;
+
+  dlBlob(zipBlob, zipName);
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -225,17 +239,30 @@ function dlBlob(blob, name) {
 }
 
 function outName(original) {
-  const dot  = original.lastIndexOf('.');
-  const base = dot !== -1 ? original.slice(0, dot) : original;
-  return base + '_compressed.webp';
+  const dot = original.lastIndexOf('.');
+  let base = dot !== -1 ? original.slice(0, dot) : original;
+  
+  // Clean and trim base
+  base = base.substring(0, 20).replace(/[^a-z0-9_-]/gi, '_');
+  if (!base) base = 'img';
+
+  const now = new Date();
+  const dd  = String(now.getDate()).padStart(2, '0');
+  const mm  = String(now.getMonth() + 1).padStart(2, '0');
+  const yy  = String(now.getFullYear()).slice(-2);
+  const hh  = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss  = String(now.getSeconds()).padStart(2, '0');
+  
+  return `${base}_${dd}-${mm}-${yy}_${hh}-${min}-${ss}.webp`;
 }
 
 function fmt(bytes) {
-  if (bytes < 1024)    return bytes + ' B';
-  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1048576).toFixed(2) + ' MB';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
 }
 
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
