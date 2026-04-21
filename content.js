@@ -104,11 +104,12 @@ function buildFilename(url) {
   const hh  = String(now.getHours()).padStart(2,'0');
   const min = String(now.getMinutes()).padStart(2,'0');
   const ss  = String(now.getSeconds()).padStart(2,'0');
-  const ts  = `${dd}-${mm}-${yy}_${hh}-${min}-${ss}`;
+  const ms  = String(now.getMilliseconds()).padStart(3,'0');
+  const ts  = `${dd}-${mm}-${yy}_${hh}-${min}-${ss}-${ms}`;
 
   if (base) {
-    // Trim to 20 chars
-    const cleanBase = base.substring(0, 20).replace(/[^a-z0-9_-]/gi, '_');
+    // Trim to 50 chars
+    const cleanBase = base.substring(0, 50).replace(/[^a-z0-9_-]/gi, '_');
     return `${cleanBase}_${ts}.webp`;
   }
 

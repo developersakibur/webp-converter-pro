@@ -81,7 +81,7 @@ function render() {
     el.innerHTML = `
       <img class="fi-thumb" id="th${i}" src="" alt=""/>
       <div class="fi-info">
-        <div class="fi-name">${esc(outName(f.file.name))}</div>
+        <div class="fi-name">${esc(outName(f.file.name, i))}</div>
         <div class="fi-stat" id="st${i}">${fmt(f.file.size)}</div>
         <div class="fi-prog"><div class="fi-fill" id="pr${i}"></div></div>
       </div>
@@ -160,7 +160,7 @@ convertBtn.addEventListener('click', async () => {
   if (zipEnabled && done.length > 1) {
     await downloadZip(done);
   } else {
-    done.forEach(f => dlBlob(f.blob, outName(f.file.name)));
+    done.forEach((f, i) => dlBlob(f.blob, outName(f.file.name, i)));
   }
 });
 
@@ -213,7 +213,7 @@ function binarySearch(canvas, targetBytes, maxQuality, resolve, reject) {
 // ── ZIP with local JSZip ──────────────────────────────────
 async function downloadZip(done) {
   const zip = new JSZip();
-  done.forEach(f => zip.file(outName(f.file.name), f.blob));
+  done.forEach((f, i) => zip.file(outName(f.file.name, i), f.blob));
   const zipBlob = await zip.generateAsync({
     type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 }
   });
@@ -238,12 +238,12 @@ function dlBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 }
 
-function outName(original) {
+function outName(original, index) {
   const dot = original.lastIndexOf('.');
   let base = dot !== -1 ? original.slice(0, dot) : original;
   
   // Clean and trim base
-  base = base.substring(0, 20).replace(/[^a-z0-9_-]/gi, '_');
+  base = base.substring(0, 50).replace(/[^a-z0-9_-]/gi, '_');
   if (!base) base = 'img';
 
   const now = new Date();
@@ -253,8 +253,11 @@ function outName(original) {
   const hh  = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
   const ss  = String(now.getSeconds()).padStart(2, '0');
+  const ms  = String(now.getMilliseconds()).padStart(3, '0');
+
+  const idx = index !== undefined ? `_${index + 1}` : '';
   
-  return `${base}_${dd}-${mm}-${yy}_${hh}-${min}-${ss}.webp`;
+  return `${base}${idx}_${dd}-${mm}-${yy}_${hh}-${min}-${ss}-${ms}.webp`;
 }
 
 function fmt(bytes) {
